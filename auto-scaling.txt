@@ -1,0 +1,382 @@
+--Creating an Application Load Balancer and Auto Scaling Group in AWS--
+
+Project Details
+
+This project walks you through the steps to create and configure an Amazon EC2 Auto Scaling with Launch templates using the AWS Management Console. 
+
+You will practice using Amazon Machine Image (AMI) to launch Amazon EC2 Instances using Launch templates and will use key pairs for SSH authentication to log into your instance.
+
+You will create a web page and publish it.
+
+Duration: 55 minutes
+
+AWS Region: US East (N. Virginia) us-east-1
+
+Task Details
+Launching Lab Environment
+
+Create a Security Group for the load balancer
+
+Create a Security Group for Launch template
+
+Create a Key Pair for the Launch template
+
+Creating a Launch template
+
+Creating the Load Balancer
+
+Create an Auto Scaling Group
+
+SSH into EC2 Instance
+
+Install the stress
+
+Test Auto Scaling Group
+-------------------------------------------------------------------------------
+Task 1: Launching Lab Environment
+Launch the lab environment by clicking on . Please wait until the lab environment is provisioned. It will take less than 2 minutes to provision the lab environment.
+
+Once the Lab is started, you will be provided with IAM user name, Password, AccessKey and Secret Access Key.
+
+Click on the , AWS Management Console will open in a new tab.
+
+In the AWS sign in page, the Account ID will be present by default.
+
+Leave the Account ID as default. Do not remove or change the Account ID otherwise you cannot proceed with the lab.
+
+Copy and paste the IAM user name and Password into AWS Console. Click on Sign in to log into the AWS Console.
+
+Note : If you face any issues, please go through FAQs and Troubleshooting for Labs.
+
+Task 2: Create a Security Group for the Load balancer
+Make sure you are in the N.Virginia Region.
+
+Navigate to EC2 by clicking on the  menu available under the section.
+
+On the left panel menu, select the  under the Network & Security section.
+
+Click on the Create security group button.
+
+We are going to create a Security group for the Launch template with port 80 number enabled.
+
+Security group name: Enter Load-balancer-SG
+
+Description: Enter Security group for Load balancer
+
+VPC: Select Default VPC
+
+
+
+Click on the Add rule button under Inbound rules.
+
+Type : Select HTTP
+
+Source : Select Custom
+
+In the textbox add 0.0.0.0/0
+
+
+
+Leave everything as default and click on the Create security group button.
+
+
+
+Task 3: Create a Security Group for Launch template
+Click on the Create security group button.
+
+We are going to create a Security group for the Launch template with port 80 number enabled.
+
+Security group name: Enter Launch-template-SG
+
+Description: Enter Security group for Launch template
+
+VPC: Select Default VPC
+
+
+
+Click on the Add rule button under Inbound rules.
+
+Here we will add SSH from the open internet and HTTP from the security group of a Load Balancer.
+
+Type : Select SSH
+
+Source : Select Custom
+
+In the textbox add 0.0.0.0/0
+
+Click on the Add rule button to add HTTP
+
+Type : Select HTTP
+
+Source : Select Custom
+
+In the textbox type, Load-balancer-SG, select that
+
+Leave everything as default and click on the Create security group button.
+
+
+
+Task 4: Create a Key Pair for the Launch template
+In the left navigation pane (scroll down) within Network & Security, click on the 
+
+To create a new key pair, click on the Create key pair button.
+
+Fill in the details below:
+
+Name:Enter WhizKeyPair
+
+File format: pem (Linux & Mac Users) or ppk (Windows users)
+
+Leave other options as default.
+
+Click on the Create key pair button.
+
+Key pair will be created.
+
+Task 5: Creating a Launch template
+In the left navigation pane (scroll down) within Instances, click on the 
+
+Click on the Create launch template button.
+
+
+Under Launch template name and description section:
+
+Launch template name: Enter whizlabsLC
+
+Template version description: Enter Launch template for whizdemo
+
+Leave other options as default.
+
+
+Under Launch template contents:
+
+Amazon machine image (AMI): Select Amazon Linux 2 AMI (HVM), SSD Volume Type
+
+ 
+
+Under Instance type:
+
+Select t2.micro from the below list.
+
+
+
+Key pair (Login): Select WhizKeyPair
+
+
+Networking platform: Virtual Private Cloud (VPC)
+
+Security groups: Select Launch-template-SG from the list 
+
+
+Leave all other options as default.
+
+Expand the option of Advance details, Go to the User data, and paste the below script.
+
+ Copy
+#!/bin/bash
+sudo su
+yum update -y
+yum install -y httpd
+systemctl start httpd
+systemctl enable httpd
+echo "Hello World from $(hostname -f)" > /var/www/html/index.html
+echo "Healthy" > /var/www/html/health.html
+To create, click on the Create launch template
+
+Upon successful creation, it will create a Launch template.
+
+
+Task 6: Creating the Load Balancer
+In the EC2 console, navigate to Load balancers in the left-side panel.
+
+Click on Create Load Balancers at the top-left to create a new load balancer for our web servers.
+
+On the next screen, choose Application Load Balancer since we are testing the high availability of the web application.
+
+In configure the load balancer as below
+
+Name        : Enter Web-server-LB
+
+Scheme    : Select Internet-facing
+
+IP address type    : Choose ipv4
+
+Listener        : Default (Http:80)
+
+Availability Zones
+
+VPC             : Choose Default
+
+Availability Zones  : Select us-east-1a and us-east-1b.
+
+Note: we must specify the availability zones in which the load balancer needs to be enabled, making it route traffic only to targets launched in those availability zones. You must include subnets from a minimum of two Availability zones to make our Load balancer Highly-Available.
+
+Once filling in all the details above, click on  Next: Configure Security Groups.
+
+On the next step, ignore the warning and click on Next: Configure Security Groups
+
+Configure Security Settings:
+
+Select an existing security group and chose the security group LoadBalancer-SG and then click on 
+
+
+
+Configure the Routing 
+
+Target Group: Select New target group (default)
+
+Name        : Enter web-server-TG
+
+Target Type    : Select Instance
+
+Protocol    : Choose HTTP
+
+Port        : Enter 80
+
+Note: The target group is used to route requests to one or more registered targets
+
+Health check:
+
+Protocol    : HTTP
+
+Path        :Enter /health.html
+
+Note: The load balancer periodically sends pings, attempts connections, or sends requests to test the EC2 instances. These tests are called health checks.
+
+
+Click on the Next: Register targets
+
+Leave this page as default and click on Next: Review
+
+Once you reviewed the settings, click on Create. 
+
+You have successfully created the Application Load balancer. 
+
+
+Wait for 2 to 3 minutes for the load balancer to become Active.
+
+Task 7: Create an Auto Scaling Group
+
+An Auto Scaling group is a scalable collection of EC2 instances. When you create an Auto Scaling group, you include information such as the subnets for the instances and the number of instances the group must maintain at all times.
+
+Go to the left menu under EC2 and choose  under .
+
+Click on the Create Auto Scaling groups button.
+
+Step 1 : Choose launch template or configuration
+
+Auto Scaling group name : Enter Whiz-ASG
+
+Select the Launch template whizlabsLC from the list and click on the Next button.
+
+
+Step 2: Configure settings
+
+Instance purchase options: Choose Adhere to launch template
+
+VPC: Select the Default VPC from the list.
+
+Subnet: Select Subnet of us-east-1a and us-east-1b
+
+Click on the Next button.
+
+
+
+Step 3: Configure advanced options
+
+Load balancing - optional: Attach to an existing load balancer
+
+Attach to an existing load balancer: Choose from your load balancer target groups
+
+Existing load balancer target groups: web-server-TG
+
+Health check - optional: 
+
+Health check type: EC2 (default) and check ELB
+
+Health check grace period: 60 seconds
+
+Click on the Next button.
+
+Step 4: Configure group size and scaling policies
+
+Under Group size - optional
+
+Desired capacity : Enter 1
+
+Minimum capacity : Enter 1
+
+Maximum capacity : Enter 4
+
+Under Scaling policies - optional
+
+Select Target tracking scaling policy
+
+Scaling policy name: Target tracking policy
+
+Metric value: Average CPU Utilization
+
+Target value:Enter 30
+
+Instance need: 60 seconds warm up before including in metric
+
+Under Instance scale-in protection
+
+No changes are needed, click on the Next button.
+
+Step 5: Add notifications
+
+No changes are needed in this page, click on the Next button.
+
+Step 6: Add tags
+
+Enter tags in key-value pairs to identify your auto scaling group instances.
+
+Key: Enter Name
+
+Value: Enter Whiz
+
+
+Click on the Next button.
+
+Now Review, scrolldown and click on the Create Auto Scalling Group button.
+
+You will be redirected to the autoscaling group page, you will be able to see that one instance is launched by the autoscaling group.
+
+Now go to the EC2 instances list. You will see that there are one running instances (which were created by your autoscaling group) You can confirm this from their tag name, which you gave at the time of creating the autoscaling group.
+
+You have successfully created an autoscaling group with a policy to a minimum of 1 and a maximum of 4 instances.
+
+Task 8: SSH into EC2 Instance
+Please follow the steps in SSH into EC2 Instance.
+Task 9: Install the stress
+
+Switch to root user: 
+
+sudo su
+
+Now run the updates using the following command: 
+
+yum -y update
+
+Once completed, let's install and run an stress
+
+Install the required packages and libraries
+
+amazon-linux-extras install epel -y
+
+yum install stress -y
+
+stress --cpu 8 --timeout 300s
+
+Task 10: Test Auto Scaling Group and Elastic Load Balancer
+For testing the auto-scaling policy, go to the EC2 instance list. You will see more new instances are getting launched.
+
+That we can see in Auto scaling page also. Capacity is now incremented by 3.
+Note: It will take 10-15 min to launch all instances
+
+
+Copy the DNS of your load balancer, and paste it into the browser.
+
+The load balancer will now try to route to a new instance every time.
+
